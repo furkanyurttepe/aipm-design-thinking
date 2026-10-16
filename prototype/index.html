@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Jam Prompt Cards – Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --card: #fbf6ea;
+      --pen: #22397a;
+      --terracotta: #b5552f;
+      --kraft: #d6b688;
+      --cream: #f5e6c8;
+      --hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--cream);
+      /* Warm lamp glow over a wooden table */
+      background:
+        radial-gradient(ellipse 70% 50% at 50% 8%, rgba(255, 205, 140, 0.35), transparent 70%),
+        radial-gradient(ellipse at 50% 120%, rgba(0, 0, 0, 0.45), transparent 60%),
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.05) 0 2px, transparent 2px 9px, rgba(255, 255, 255, 0.03) 9px 11px, transparent 11px 23px),
+        linear-gradient(180deg, #74513a, #5e3f2b);
+    }
+    header { max-width: 440px; margin: 0 auto; padding: 14px 16px 0; text-align: center; }
+    h1 {
+      margin: 0;
+      font-family: var(--hand);
+      font-weight: 700;
+      font-size: 2.4rem;
+      color: var(--cream);
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    }
+
+    .deck { max-width: 440px; margin: 0 auto; padding: 12px 16px 32px; }
+
+    .card {
+      position: relative;
+      display: block;
+      width: min(100%, calc((100vh - 230px) * 338 / 489));
+      width: min(100%, calc((100dvh - 230px) * 338 / 489));
+      min-width: 240px;
+      margin: 0 auto;
+      aspect-ratio: 338 / 489;
+      container-type: inline-size;
+      border: 0;
+      padding: 0;
+      background: none;
+      cursor: pointer;
+      perspective: 1400px;
+      font: inherit;
+      color: inherit;
+      text-align: left;
+    }
+    .card:focus-visible { outline: 3px solid var(--kraft); outline-offset: 5px; border-radius: 20px; }
+    .inner {
+      position: absolute;
+      inset: 0;
+      transition: transform 0.5s;
+      transform-style: preserve-3d;
+      -webkit-transform-style: preserve-3d;
+    }
+    .card[aria-pressed="true"] .inner { transform: rotateY(180deg); }
+
+    /* Note: no overflow:hidden on faces — it breaks the 3D flip in Chromium. */
+    .face {
+      position: absolute;
+      inset: 0;
+      /* Text scales with the card, so proportions hold on any screen width */
+      font-size: 3.9cqw;
+      border-radius: 18px;
+      background: var(--card);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      /* Hide the face that is turned away halfway through the flip, so its
+         text can never show through. */
+      transition: visibility 0s linear 0.25s;
+    }
+    .face[aria-hidden="true"] { visibility: hidden; }
+
+    /* ---------- Front: a classic playing card with handwriting on it ---------- */
+
+    /* Classic deck artwork (SVG-cards, LGPL-2.1), faded behind the handwriting */
+    .art {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: center / 100% 100% no-repeat;
+    }
+    .veil {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: rgba(251, 246, 234, 0.8);
+    }
+
+    .ink {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 2.5em 2.6em 2.3em;
+      font-family: var(--hand);
+      font-weight: 600;
+      line-height: 1.15;
+      color: var(--pen);
+      transform: rotate(-0.8deg);
+      text-shadow: 0 0 3px var(--card), 0 0 6px var(--card), 0 0 10px var(--card);
+    }
+    .genre { font-size: 1.8em; font-weight: 700; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 5px; }
+    .key { font-size: 1.4em; margin-top: 0.1em; }
+    .chords { font-size: 2.6em; font-weight: 700; line-height: 1.05; margin: 0.05em 0 0.25em; }
+    .meter { display: flex; align-items: center; gap: 0.6em; margin-bottom: 0.35em; }
+    .timesig {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 2.3em;
+      font-weight: 700;
+      line-height: 0.8;
+      padding-left: 0.2em;
+      border-left: 2px solid var(--pen);
+    }
+    .tempo { font-size: 1.8em; font-weight: 700; white-space: nowrap; }
+    .feel { font-size: 1.35em; line-height: 1.05; }
+    .strum { display: grid; gap: 0 0.3em; text-align: center; margin: 0.15em 0 0.1em; }
+    /* Small text never drops below 1rem on narrow phones */
+    .strum .count { font-size: max(1.3em, 1rem); }
+    .strum .hit { font-size: 1.9em; font-weight: 700; line-height: 1.1; }
+    .legend { font-size: max(1.1em, 1rem); margin-bottom: 0.3em; }
+    .legend + .legend { margin-bottom: 0.45em; }
+
+    /* Offline fallback: shown only when the card image cannot load */
+    .fallback-index {
+      display: none;
+      position: absolute;
+      z-index: 2;
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: bold;
+      font-size: 1.7em;
+      line-height: 1;
+    }
+    .fallback-index.tl { top: 0.5em; left: 0.5em; }
+    .fallback-index.br { bottom: 0.5em; right: 0.5em; transform: rotate(180deg); }
+    .fallback-index.red { color: #c8302c; }
+    .no-art .fallback-index { display: block; }
+    .back .art { background-color: #b3262b; }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+    .theme { font-size: 1.65em; }
+    .line { margin: auto 0 0; font-size: 1.9em; font-weight: 700; }
+
+    /* Joker (Break) */
+    .break-title { margin: auto 0 0.1em; font-size: 5em; font-weight: 700; text-align: center; }
+    .break-text { margin: 0 0 auto; font-size: 2.1em; text-align: center; }
+
+    /* ---------- Back: classic red card back with a taped kraft label ---------- */
+    .back {
+      transform: rotateY(180deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .label {
+      position: relative;
+      z-index: 1;
+      width: 78%;
+      padding: 1.8em 1.3em 1.4em;
+      background:
+        repeating-linear-gradient(8deg, rgba(0, 0, 0, 0.03) 0 1px, transparent 1px 4px),
+        var(--kraft);
+      transform: rotate(-2deg);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+      font-family: var(--hand);
+      font-size: 2.35em;
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--pen);
+      text-align: center;
+    }
+    .tape {
+      position: absolute;
+      top: -0.55em;
+      left: 50%;
+      width: 3.4em;
+      height: 0.9em;
+      transform: translateX(-50%) rotate(4deg);
+      background: rgba(242, 232, 205, 0.8);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    }
+
+    /* ---------- Round Jam button ---------- */
+    .controls { display: flex; justify-content: center; margin-top: 16px; }
+    .jam {
+      width: 108px;
+      height: 108px;
+      border-radius: 50%;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      padding: 0;
+      border: 3px solid var(--terracotta);
+      background: radial-gradient(circle at 40% 35%, #eed6ab, var(--kraft) 70%);
+      color: #3b2a1d;
+      font-family: var(--hand);
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #8a3f22, 0 10px 20px rgba(0, 0, 0, 0.35);
+    }
+    .jam .notes { font-family: "Apple Symbols", "Segoe UI Symbol", "DejaVu Sans", serif; font-size: 2.4rem; line-height: 1; }
+    .jam:active { transform: translateY(4px); box-shadow: 0 1px 0 #8a3f22, 0 4px 10px rgba(0, 0, 0, 0.35); }
+    .jam:focus-visible { outline: 3px solid var(--cream); outline-offset: 4px; }
+
+    .credit {
+      margin: 22px 0 0;
+      text-align: center;
+      font-family: Arial, sans-serif;
+      font-size: 0.85rem;
+      color: var(--cream);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+    .credit a, .credit button { color: inherit; }
+    .credit button {
+      margin-left: 6px;
+      padding: 0;
+      border: 0;
+      background: none;
+      font: inherit;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .print-sheet { display: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .inner, .face { transition: none; }
+    }
+
+    /* Print: 9 cards per page; each front page is followed by its back page.
+       Backs are mirrored per row so they line up when printed double-sided
+       (flip on long edge). */
+    @media print {
+      @page { size: A4; margin: 10mm; }
+      body { background: #fff; }
+      header, .deck, .credit { display: none; }
+      .print-sheet { display: block; }
+      .page {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-auto-rows: 88mm;
+        gap: 3mm;
+        break-after: page;
+      }
+      .page .face {
+        position: relative;
+        font-size: 6.4pt;
+        transform: none;
+        box-shadow: none;
+        border: 1px dashed #999;
+        border-radius: 4mm;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+      .page .blank { border: 0; background: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Jam Prompt Cards</h1>
+  </header>
+
+  <main class="deck">
+    <button class="card" id="card" type="button" aria-pressed="false">
+      <div class="inner" id="inner"></div>
+    </button>
+    <div class="controls">
+      <button class="jam" id="jam" type="button"><span class="notes" aria-hidden="true">♫</span><span>Jam</span></button>
+    </div>
+    <p class="credit">Card images: <a href="https://github.com/htdebeer/SVG-cards">SVG-cards</a>
+      (David Bellot, Huub de Beer) · LGPL-2.1 ·
+      <button type="button" id="export">Export session log</button></p>
+  </main>
+
+  <div class="print-sheet" id="print-sheet" aria-hidden="true"></div>
+
+  <script>
+    // ---------- Music: keys and transposition ----------
+    const SHARP = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
+    const FLAT  = ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"];
+    const FLAT_KEYS = ["F", "B♭", "E♭", "A♭", "Dm", "Gm", "Cm", "Fm"];
+
+    // A key is written like "E" (major) or "Em" (minor).
+    function parseKey(key) {
+      const minor = key.endsWith("m");
+      const root = minor ? key.slice(0, -1) : key;
+      const index = SHARP.includes(root) ? SHARP.indexOf(root) : FLAT.indexOf(root);
+      return { root, minor, index, names: FLAT_KEYS.includes(key) ? FLAT : SHARP };
+    }
+
+    // A progression step is [semitones above the tonic, chord suffix].
+    function transpose(key, steps) {
+      const k = parseKey(key);
+      return steps.map(([semi, suffix]) => k.names[(k.index + semi) % 12] + suffix).join(" – ");
+    }
+
+    function keyName(key) {
+      const k = parseKey(key);
+      return `${k.root} ${k.minor ? "minor" : "major"}`;
+    }
+
+    // ---------- Genres: rhythm, feel and strumming stay tied to the genre;
+    // keys are ones the genre is commonly played in, limited to open-chord
+    // keys (C, G, D, A, E, Am, Em, Dm) so newcomers can play them. ----------
+    // Strum symbols: ↓ down, ↑ up, – rest, x muted hit, B bass note.
+    const GRIDS = {
+      eighths:    ["1", "&", "2", "&", "3", "&", "4", "&"],
+      sixteenths: ["1", "e", "&", "a", "2", "e", "&", "a"],
+      quarters:   ["1", "2", "3", "4"],
+      waltz:      ["1", "2", "3"],
+      six:        ["1", "2", "3", "4", "5", "6"]
+    };
+
+    const I = [0, ""], IV = [5, ""], V = [7, ""], vi = [9, "m"], iii = [4, "m"];
+    const genres = [
+      { name: "Pop ballad", sig: [4, 4], tempo: [66, 80], feel: "Straight", grid: "eighths",
+        strums: ["↓ – ↓ ↑ – ↑ ↓ ↑", "↓ – – ↑ – ↑ ↓ ↑"], keys: ["C", "G", "D", "A"],
+        major: [[I, V, vi, IV], [vi, IV, I, V], [I, vi, IV, V]] },
+      { name: "12-bar blues", sig: [4, 4], tempo: [80, 100], feel: "Shuffle · swing ♪♪ = ♩♪³", grid: "eighths",
+        strums: ["↓ – ↓ ↑ – ↑ ↓ ↑", "↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓"], keys: ["E", "A", "G"],
+        major: [[[0, "7"], [5, "7"], [7, "7"]]] },
+      { name: "Funk", hard: true, sig: [4, 4], tempo: [94, 110], feel: "16th-note groove", grid: "sixteenths",
+        strums: ["↓ x ↑ x ↓ x ↑ x", "↓ ↑ x ↑ ↓ ↑ x ↑"], keys: ["Em", "Am", "Dm"],
+        minor: [[[0, "m7"], [5, "7"]], [[0, "m7"], [10, "7"]]] },
+      { name: "Bossa nova", sig: [4, 4], tempo: [110, 130], feel: "Thumb bass on 1 and 3", grid: "eighths",
+        strums: ["B – ↑ B – ↑ ↑ –"], keys: ["C", "G"],
+        major: [[[2, "m7"], [7, "7"], [0, "maj7"]], [[0, "maj7"], [9, "m7"], [2, "m7"], [7, "7"]]] },
+      { name: "Rock", sig: [4, 4], tempo: [110, 132], feel: "Driving, all downstrokes", grid: "eighths",
+        strums: ["↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓", "↓ – ↓ ↓ – ↓ ↓ ↓"], keys: ["E", "A", "D", "G"],
+        major: [[I, [10, ""], IV], [I, IV, V]] },
+      { name: "Reggae", sig: [4, 4], tempo: [70, 84], feel: "One-drop · short skank on 2 and 4", grid: "quarters",
+        strums: ["– x – x"], keys: ["Am", "Em", "Dm", "G", "C"],
+        minor: [[[0, "m"], [10, ""]]], major: [[I, IV], [I, IV, V, IV]] },
+      { name: "Country", sig: [4, 4], tempo: [100, 120], feel: "Train beat · boom-chicka", grid: "eighths",
+        strums: ["B – ↓ ↑ B – ↓ ↑"], keys: ["G", "C", "D", "A"],
+        major: [[I, IV, V], [I, IV, I, V]] },
+      { name: "Soul", sig: [4, 4], tempo: [72, 88], feel: "Laid-back", grid: "eighths",
+        strums: ["↓ – – ↑ – ↑ ↓ –"], keys: ["C", "G"],
+        major: [[[0, "maj7"], [9, "m7"], [2, "m7"], [7, "7"]], [[2, "m7"], [7, "7"], [0, "maj7"], [9, "m7"]]] },
+      { name: "Indie folk", sig: [4, 4], tempo: [92, 108], feel: "Strummed", grid: "eighths",
+        strums: ["↓ – ↓ ↑ – ↑ ↓ ↑", "↓ ↓ ↑ – ↑ ↓ ↑ –"], keys: ["D", "G", "C", "A"],
+        major: [[I, V, vi, IV], [I, IV, vi, V]] },
+      { name: "Boom bap", sig: [4, 4], tempo: [84, 94], feel: "Swung · swing ♪♪ = ♩♪³", grid: "eighths",
+        strums: ["↓ – – ↓ – – ↓ –"], keys: ["Am", "Em", "Dm"],
+        minor: [[[0, "m7"], [5, "m7"]], [[0, "m7"], [5, "m7"], [8, "maj7"]]] },
+      { name: "Gospel", sig: [4, 4], tempo: [64, 76], feel: "Warm, full", grid: "eighths",
+        strums: ["↓ – ↓ ↑ ↓ ↑ ↓ ↑"], keys: ["C", "G", "D"],
+        major: [[I, IV, I, V], [I, vi, [2, "m"], V]] },
+      { name: "Waltz", hard: true, sig: [3, 4], tempo: [108, 132], feel: "Oom-pah-pah", grid: "waltz",
+        strums: ["B ↓ ↓"], keys: ["Am", "Em", "Dm", "G", "C"],
+        minor: [[[0, "m"], [5, "m"], [7, "7"], [0, "m"]]], major: [[I, IV, [7, "7"], I]] },
+      { name: "Disco", hard: true, sig: [4, 4], tempo: [116, 124], feel: "Four on the floor · muted “chicken scratch”", grid: "sixteenths",
+        strums: ["↓ ↑ ↓ ↑ ↓ ↑ ↓ ↑"], keys: ["Am", "Dm", "Em"],
+        minor: [[[0, "m7"], [5, "7"]], [[0, "m7"], [5, "m7"]]] },
+      { name: "R&B", sig: [4, 4], tempo: [64, 76], feel: "Half-time", grid: "eighths",
+        strums: ["↓ – – – – ↑ ↓ –"], keys: ["C", "G"],
+        major: [[[5, "maj7"], [4, "m7"], [2, "m7"], [0, "maj7"]], [[2, "m7"], [7, "7"], [0, "maj7"]]] },
+      { name: "Flamenco rumba", sig: [4, 4], tempo: [100, 120], feel: "Rumba · x = slap on 2 and 4", grid: "eighths",
+        strums: ["↓ – ↓ ↑ x ↑ ↓ ↑"], keys: ["Am", "Em", "Dm"],
+        minor: [[[0, "m"], [10, ""], [8, ""], [7, ""]]] },
+      { name: "Motown", sig: [4, 4], tempo: [112, 124], feel: "Backbeat on 2 and 4", grid: "quarters",
+        strums: ["– ↓ – ↓"], keys: ["C", "G", "D"],
+        major: [[I, IV, V], [I, vi, IV, V]] },
+      { name: "Dream pop", sig: [4, 4], tempo: [56, 68], feel: "Slow, let it ring", grid: "quarters",
+        strums: ["↓ – – –"], keys: ["C", "D", "G"],
+        major: [[[0, "maj7"], [5, "maj7"]], [I, iii, IV]] },
+      { name: "Alt rock", sig: [4, 4], tempo: [88, 100], feel: "Straight", grid: "eighths",
+        strums: ["↓ ↓ ↓ ↑ – ↑ ↓ ↑"], keys: ["Em", "Am"],
+        minor: [[[0, "m"], [8, ""], [3, ""], [10, ""]]] },
+      { name: "Afrobeat", hard: true, sig: [4, 4], tempo: [104, 116], feel: "Choppy 16ths", grid: "sixteenths",
+        strums: ["– x ↑ x – x ↑ x"], keys: ["Dm", "Am", "Em"],
+        minor: [[[0, "m7"], [5, ""]]] },
+      { name: "Lullaby", sig: [6, 8], tempo: [54, 66], feel: "Gentle, rocking", grid: "six",
+        strums: ["↓ – ↑ ↓ – ↑"], keys: ["G", "C", "D"],
+        major: [[I, vi, IV, V]] }
+    ];
+
+    // ---------- Lyrics: each theme has opening lines that fit it ----------
+    const themes = [
+      { theme: "Love", lines: ["I'm in love with your eyes…", "Your laugh is my favourite song…"] },
+      { theme: "Moving to a new city", lines: ["Packed my whole life in a single bag…", "New streets, same old heart…"] },
+      { theme: "A night out", lines: ["City lights are calling my name…", "One more song before we go…"] },
+      { theme: "Rain", lines: ["Rain on the window, coffee in my hand…", "Grey sky, warm room…"] },
+      { theme: "Freedom", lines: ["Open road and nowhere to be…", "Nobody waiting, nothing to prove…"] },
+      { theme: "Sunday morning", lines: ["Sunday morning, no alarm…", "Slow coffee, slower light…"] },
+      { theme: "Home", lines: ["Dusty boots by the kitchen door…", "The porch light's always on…"] },
+      { theme: "Missing someone", lines: ["Your voice still lives in my phone…", "An empty chair at the table…"] },
+      { theme: "A long train ride", lines: ["Window seat and a borrowed song…", "Fields rolling by like old memories…"] },
+      { theme: "My neighbourhood", lines: ["Corner shop knows my name now…", "Same bench, same pigeons…"] },
+      { theme: "Gratitude", lines: ["Thank you for the open door…", "Every little thing you gave…"] },
+      { theme: "Old photographs", lines: ["Black and white and smiling still…", "Faded colours, sharper hearts…"] },
+      { theme: "Saturday night", lines: ["Mirror ball and a brand-new friend…", "Shoes too tight, music too loud…"] },
+      { theme: "A late-night call", lines: ["Two a.m. and you're still on the line…", "Tell me something only night can hear…"] },
+      { theme: "Distance", lines: ["Miles between us, songs in between…", "Different time zones, same moon…"] },
+      { theme: "Good news", lines: ["Got a letter in the mail today…", "Finally something's going right…"] },
+      { theme: "The sea", lines: ["Waves forget the shore each night…", "Salt in my hair, nothing on my mind…"] },
+      { theme: "Growing up", lines: ["Smaller rooms than I remember…", "Used to dream between these walls…"] },
+      { theme: "Market day", lines: ["Colours loud and voices louder…", "Fresh bread and old friends…"] },
+      { theme: "Someone far away", lines: ["Close your eyes, I'm still here…", "Sleep now, I'll keep the light on…"] }
+    ];
+
+    // ---------- Back-side questions ----------
+    // Type (M = about the music just played, P = personal) is used only in
+    // the session log, never shown, so participants are not led by it.
+    // Prompt cards ask M questions; the Break joker asks P questions
+    // (test: M questions led to longer conversations, T-4 vs T-7).
+    const questions = [
+      { text: "Which song did this progression remind you of?", type: "M" },
+      { text: "What would you change if we played it again?", type: "M" },
+      { text: "What did the other player do that you liked?", type: "M" },
+      { text: "What story did the song tell you?", type: "M" },
+      { text: "What feeling did we create together?", type: "M" },
+      { text: "Which line would you keep if we wrote it down?", type: "M" },
+      { text: "What would you write about next?", type: "M" },
+      { text: "Which instrument would you add next time?", type: "M" },
+      { text: "What did you hear that surprised you?", type: "M" },
+      { text: "What would you name this song?", type: "M" },
+      { text: "What image came to mind while playing?", type: "M" },
+      { text: "What other song does this rhythm remind you of?", type: "M" },
+      { text: "Where did you first hear music like this?", type: "P" },
+      { text: "Who should we invite to play this with next time?", type: "P" },
+      { text: "Which local spot would you play this at?", type: "P" },
+      { text: "Who brought you to music?", type: "P" },
+      { text: "What's the last song you had on repeat?", type: "P" },
+      { text: "Which band got you into music?", type: "P" },
+      { text: "Who would you play this song for?", type: "P" },
+      { text: "What's the first album you ever bought?", type: "P" },
+      { text: "What has been your favourite moment tonight?", type: "P" }
+    ];
+
+    const BREAK_AFTER = 8;
+
+    const SUITS = ["♠", "♥", "♦", "♣"];
+    const RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+
+    // ---------- Randomness ----------
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let k = a.length - 1; k > 0; k--) {
+        const j = Math.floor(Math.random() * (k + 1));
+        [a[k], a[j]] = [a[j], a[k]];
+      }
+      return a;
+    }
+
+    // A bag deals every item once in random order, then reshuffles;
+    // the same item never comes twice in a row.
+    function makeBag(items) {
+      let bag = [];
+      let last = null;
+      return () => {
+        if (bag.length === 0) bag = shuffle(items);
+        if (bag[0] === last) {
+          const k = bag.findIndex(x => x !== last);
+          if (k > 0) [bag[0], bag[k]] = [bag[k], bag[0]];
+        }
+        last = bag.shift();
+        return last;
+      };
+    }
+
+    // Harder genres appear half as often (test: skipped or hesitated, T-1, T-5).
+    const drawGenre = makeBag(genres.flatMap(g => g.hard ? [g] : [g, g]));
+    const drawTheme = makeBag(themes);
+    const drawQuestion = makeBag(questions.filter(q => q.type === "M"));
+    const drawPersonal = makeBag(questions.filter(q => q.type === "P"));
+    const drawSkin = makeBag(SUITS.flatMap(suit => RANKS.map(rank => ({ rank, suit }))));
+
+    // Build one prompt from independent random parts.
+    function makePrompt() {
+      const g = drawGenre();
+      const key = pick(g.keys);
+      const progressions = key.endsWith("m") ? g.minor : g.major;
+      const bpm = 2 * Math.round((g.tempo[0] + Math.random() * (g.tempo[1] - g.tempo[0])) / 2);
+      const t = drawTheme();
+      return {
+        genre: g.name,
+        key: keyName(key),
+        chords: transpose(key, pick(progressions)),
+        sig: g.sig,
+        tempo: (g.sig[1] === 8 ? "♩. = " : "♩ = ") + bpm,
+        feel: g.feel,
+        grid: g.grid,
+        strum: pick(g.strums),
+        theme: t.theme,
+        line: `“${pick(t.lines)}”`,
+        question: drawQuestion()
+      };
+    }
+
+    // ---------- Rendering ----------
+    // Classic deck artwork from SVG-cards (LGPL-2.1), used unmodified.
+    const ART = "https://cdn.jsdelivr.net/npm/svg-cards@4.0.2/png/2x/";
+    const SUIT_NAMES = { "♠": "spade", "♥": "heart", "♦": "diamond", "♣": "club" };
+    const RANK_NAMES = { A: "1", J: "jack", Q: "queen", K: "king" };
+
+    const artUrl = name => `${ART}${name}.png`;
+    const skinName = skin => `${SUIT_NAMES[skin.suit]}_${RANK_NAMES[skin.rank] || skin.rank}`;
+
+    function art(name, faded, index = "", red = false) {
+      const fallback = index
+        ? ["tl", "br"].map(pos => `<span class="fallback-index ${pos}${red ? " red" : ""}" aria-hidden="true">${index}</span>`).join("")
+        : "";
+      return `<div class="art" data-src="${artUrl(name)}" style="background-image:url('${artUrl(name)}')" aria-hidden="true"></div>`
+        + (faded ? `<div class="veil"></div>` : "") + fallback;
+    }
+
+    // If an image cannot load (e.g. no internet at the venue), show the card
+    // index as text so the card still reads as a playing card.
+    function watchArt(root) {
+      root.querySelectorAll(".art[data-src]").forEach(el => {
+        const img = new Image();
+        img.onerror = () => el.closest(".face").classList.add("no-art");
+        img.src = el.dataset.src;
+      });
+    }
+
+    // Preload the card back and joker so the first flip and break look right.
+    ["back-red", "joker_red"].forEach(n => { new Image().src = artUrl(n); });
+
+    function strumGrid(p) {
+      const counts = GRIDS[p.grid];
+      const hits = p.strum.split(" ");
+      return `
+        <span class="sr-only">Strum pattern: ${p.strum}</span>
+        <div class="strum" style="grid-template-columns: repeat(${counts.length}, 1fr)" aria-hidden="true">
+          ${counts.map(n => `<span class="count">${n}</span>`).join("")}
+          ${hits.map(h => `<span class="hit">${h}</span>`).join("")}
+        </div>`;
+    }
+
+    function front(p, skin) {
+      return `
+        <div class="face front">
+          ${art(skinName(skin), true, skin.rank + skin.suit, skin.suit === "♥" || skin.suit === "♦")}
+          <div class="ink">
+            <span class="genre">${p.genre}</span>
+            <span class="key">Key of ${p.key}</span>
+            <span class="chords">${p.chords}</span>
+            <div class="meter">
+              <span class="sr-only">${p.sig[0]}/${p.sig[1]} time</span><span class="timesig" aria-hidden="true"><span>${p.sig[0]}</span><span>${p.sig[1]}</span></span>
+              <span class="tempo">${p.tempo}</span>
+              <span class="feel">${p.feel}</span>
+            </div>
+            ${strumGrid(p)}
+            <div class="legend">↓ down · ↑ up · – rest · x muted · B bass note</div>
+            <div class="legend">No instrument? Clap, hum or sing along.</div>
+            <div class="theme">Theme: ${p.theme}</div>
+            <p class="line">${p.line}</p>
+          </div>
+        </div>`;
+    }
+
+    function breakFront() {
+      return `
+        <div class="face front">
+          ${art("joker_red", true, "JOKER", true)}
+          <div class="ink">
+            <span class="break-title">Break</span>
+            <p class="break-text">Put your instruments down for a few minutes.</p>
+          </div>
+        </div>`;
+    }
+
+    function back(question) {
+      return `
+        <div class="face back">
+          ${art("back-red", false)}
+          <div class="label"><span class="tape"></span>${question.text}</div>
+        </div>`;
+    }
+
+    // Endless deck: a Break joker follows every 8 prompts. Skipped cards also
+    // count towards the 8 (kept simple on purpose; observed in the test).
+    let sinceBreak = 0;
+    function dealNext() {
+      if (sinceBreak === BREAK_AFTER) {
+        sinceBreak = 0;
+        return { type: "break", question: drawPersonal() };
+      }
+      sinceBreak++;
+      return { type: "prompt", prompt: makePrompt(), skin: drawSkin() };
+    }
+
+    const card = document.getElementById("card");
+    const inner = document.getElementById("inner");
+
+    function render(entry) {
+      card.setAttribute("aria-pressed", "false");
+      inner.innerHTML = entry.type === "break"
+        ? breakFront() + back(entry.question)
+        : front(entry.prompt, entry.skin) + back(entry.prompt.question);
+      syncHidden();
+      watchArt(inner);
+    }
+
+    // The face turned away is hidden (visually and from screen readers).
+    function syncHidden() {
+      const flipped = card.getAttribute("aria-pressed") === "true";
+      inner.querySelector(".front").setAttribute("aria-hidden", String(flipped));
+      inner.querySelector(".back").setAttribute("aria-hidden", String(!flipped));
+    }
+
+    // ---------- Session log for observers ----------
+    // One row per dealt card, exported as CSV after the session. The page only
+    // records what it can know; observers fill in the conversation columns.
+    // Outcome: "current" for the card on screen, "moved on" once Jam is pressed.
+    const log = [];
+    let current = null;
+
+    function logEntry(entry) {
+      const q = entry.type === "break" ? entry.question : entry.prompt.question;
+      const row = {
+        time: new Date().toLocaleTimeString(),
+        card: entry.type === "break" ? "Break joker" : `${entry.skin.rank}${entry.skin.suit}`,
+        genre: entry.type === "break" ? "" : entry.prompt.genre,
+        key: entry.type === "break" ? "" : entry.prompt.key,
+        chords: entry.type === "break" ? "" : entry.prompt.chords,
+        theme: entry.type === "break" ? "" : entry.prompt.theme,
+        question: q.text,
+        questionType: q.type,
+        turnedOver: "no",
+        outcome: "current",
+        conversationStarted: "",
+        conversationMinutes: "",
+        observerNotes: ""
+      };
+      log.push(row);
+      return row;
+    }
+
+    function jam() {
+      if (current) current.row.outcome = "moved on";
+      const entry = dealNext();
+      entry.row = logEntry(entry);
+      render(entry);
+      current = entry;
+    }
+
+    function exportLog() {
+      const cols = Object.keys(log[0]);
+      const esc = v => `"${String(v).replace(/"/g, '""')}"`;
+      const csv = [cols.join(","), ...log.map(r => cols.map(c => esc(r[c])).join(","))].join("\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+      a.download = `jam-session-log-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    card.addEventListener("click", () => {
+      const flipped = card.getAttribute("aria-pressed") === "true";
+      card.setAttribute("aria-pressed", String(!flipped));
+      if (!flipped && current) current.row.turnedOver = "yes";
+      syncHidden();
+    });
+    document.getElementById("jam").addEventListener("click", jam);
+    document.getElementById("export").addEventListener("click", exportLog);
+    document.addEventListener("keydown", e => {
+      if (e.target !== document.body) return;
+      if (e.key === "ArrowRight") jam();
+      if (e.key === " ") { e.preventDefault(); jam(); }
+    });
+
+    jam();
+
+    // Print sheet: 20 random prompts plus two Break jokers, 9 per page; each
+    // front page is followed by its back page, with each row of backs
+    // reversed for double-sided alignment.
+    const sheet = document.getElementById("print-sheet");
+    const printItems = [];
+    for (let k = 0; k < 20; k++) {
+      const p = makePrompt();
+      printItems.push({ front: front(p, drawSkin()), back: back(p.question) });
+    }
+    for (let k = 0; k < 2; k++) printItems.push({ front: breakFront(), back: back(drawPersonal()) });
+
+    const perPage = 9;
+    const cols = 3;
+    const blank = `<div class="face blank"></div>`;
+    for (let start = 0; start < printItems.length; start += perPage) {
+      const slots = printItems.slice(start, start + perPage);
+      while (slots.length < perPage) slots.push(null);
+
+      const fronts = slots.map(s => s ? s.front : blank);
+      const backs = [];
+      for (let r = 0; r < perPage; r += cols) {
+        slots.slice(r, r + cols).reverse().forEach(s => backs.push(s ? s.back : blank));
+      }
+      sheet.insertAdjacentHTML("beforeend",
+        `<div class="page">${fronts.join("")}</div><div class="page">${backs.join("")}</div>`);
+    }
+  </script>
+</body>
+</html>
