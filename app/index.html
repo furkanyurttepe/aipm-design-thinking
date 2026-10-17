@@ -101,7 +101,7 @@
       text-shadow: 0 1px 0 rgba(255, 235, 200, 0.25), 0 -1px 0 rgba(0, 0, 0, 0.55), 0 3px 8px rgba(0, 0, 0, 0.45);
     }
 
-    .deck { max-width: 440px; margin: 0 auto; padding: 12px 16px 32px; }
+    .deck { max-width: 440px; margin: 0 auto; padding: 8px 16px 16px; }
 
     .card {
       position: relative;
@@ -122,6 +122,14 @@
       color: inherit;
       text-align: left;
     }
+    /* Group Jam: the session bar takes ~30px more, so the card gives way */
+    .deck.group .card {
+      width: min(100%, calc((100vh - 262px) * 338 / 489));
+      width: min(100%, calc((100dvh - 262px) * 338 / 489));
+      width: min(100%, calc((100cqh - 262px) * 338 / 489));
+    }
+    /* No rubber-band bounce when the page is dragged */
+    html, body { overscroll-behavior: none; }
     .card:focus-visible { outline: 3px solid var(--kraft); outline-offset: 5px; border-radius: 20px; }
     .inner {
       position: absolute;
@@ -496,7 +504,8 @@
         padding-top: 30px;
       }
       /* Leave room for the title, buttons and credit inside the frame */
-      .card { width: min(100%, calc((100cqh - 300px) * 338 / 489)); }
+      .card { width: min(100%, calc((100cqh - 306px) * 338 / 489)); }
+      .deck.group .card { width: min(100%, calc((100cqh - 332px) * 338 / 489)); }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -1259,6 +1268,7 @@
 
     function enterDeck() {
       const group = mode === "group";
+      document.getElementById("deck").classList.toggle("group", group);
       playersBox.classList.toggle("solo", !group);
       playersBox.setAttribute("aria-label", group ? "Musicians in this session" : "Single play");
       jamBtn.disabled = group && !session.isHost;
