@@ -118,7 +118,11 @@
     }
     .genre { font-size: 1.8em; font-weight: 700; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 5px; }
     .key { font-size: 1.4em; margin-top: 0.1em; }
-    .chords { font-size: 2.6em; font-weight: 700; line-height: 1.05; margin: 0.05em 0 0.25em; }
+    .chords { font-size: 2.35em; font-weight: 700; line-height: 1.05; margin: 0.05em 0 0; }
+    .roman { font-size: 1.35em; letter-spacing: 0.02em; margin-bottom: 0.25em; }
+    /* ♭ and ♯ are missing from the handwriting font; draw them in a font
+       that has them, sized to sit with the handwriting */
+    .acc { font-family: "Apple Symbols", "Segoe UI Symbol", "DejaVu Sans", serif; font-size: 0.8em; font-weight: normal; margin-left: 0.02em; }
     .meter { display: flex; align-items: center; gap: 0.6em; margin-bottom: 0.35em; }
     .timesig {
       display: inline-flex;
@@ -306,22 +310,53 @@
 
   <script>
     // ---------- Music: keys and transposition ----------
-    const SHARP = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
-    const FLAT  = ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"];
-    const FLAT_KEYS = ["F", "B♭", "E♭", "A♭", "Dm", "Gm", "Cm", "Fm"];
+    // Chords are spelled from the key's letter name, so every key reads
+    // correctly (e.g. C major ♭VII = B♭, E♭ minor ♭VI = C♭).
+    const LETTERS = ["C", "D", "E", "F", "G", "A", "B"];
+    const NATURAL = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+    const ACCIDENTAL = { "♭♭": -2, "♭": -1, "": 0, "♯": 1, "♯♯": 2 };
+    // Semitones above the tonic → scale degree (0 = I … 6 = VII)
+    const DEGREE = { 0: 0, 2: 1, 3: 2, 4: 2, 5: 3, 7: 4, 8: 5, 9: 5, 10: 6 };
 
-    // A key is written like "E" (major) or "Em" (minor).
+    const MAJOR_KEYS = ["C", "G", "D", "A", "E", "B", "F♯", "D♭", "A♭", "E♭", "B♭", "F"];
+    const MINOR_KEYS = ["Am", "Em", "Bm", "F♯m", "C♯m", "G♯m", "Dm", "Gm", "Cm", "Fm", "B♭m", "E♭m"];
+    // Open-chord keys are dealt twice as often, so newcomers still get
+    // easy cards (prototype re-review, finding 2).
+    const OPEN_KEYS = new Set(["C", "G", "D", "A", "E", "Am", "Em", "Dm"]);
+
+    // A key is written like "E♭" (major) or "F♯m" (minor).
     function parseKey(key) {
       const minor = key.endsWith("m");
       const root = minor ? key.slice(0, -1) : key;
-      const index = SHARP.includes(root) ? SHARP.indexOf(root) : FLAT.indexOf(root);
-      return { root, minor, index, names: FLAT_KEYS.includes(key) ? FLAT : SHARP };
+      const letter = root[0];
+      const pc = (NATURAL[letter] + ACCIDENTAL[root.slice(1)] + 12) % 12;
+      return { root, minor, letter, pc };
+    }
+
+    function spell(k, semi) {
+      const letter = LETTERS[(LETTERS.indexOf(k.letter) + DEGREE[semi]) % 7];
+      let diff = ((k.pc + semi - NATURAL[letter]) % 12 + 12) % 12;
+      if (diff > 6) diff -= 12;
+      const acc = Object.keys(ACCIDENTAL).find(a => ACCIDENTAL[a] === diff);
+      return letter + acc;
     }
 
     // A progression step is [semitones above the tonic, chord suffix].
     function transpose(key, steps) {
       const k = parseKey(key);
-      return steps.map(([semi, suffix]) => k.names[(k.index + semi) % 12] + suffix).join(" – ");
+      return steps.map(([semi, suffix]) => spell(k, semi) + suffix).join(" – ");
+    }
+
+    // Roman-numeral name of a step: upper case = major, lower case = minor;
+    // ♭ for borrowed degrees (♭III, ♭VI, ♭VII).
+    const NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII"];
+    function roman([semi, suffix]) {
+      const minor = suffix.startsWith("m") && !suffix.startsWith("maj");
+      let numeral = NUMERALS[DEGREE[semi]];
+      if (minor) numeral = numeral.toLowerCase();
+      const flat = [3, 8, 10].includes(semi) ? "♭" : "";
+      const extension = suffix.endsWith("maj7") ? "maj7" : suffix.endsWith("7") ? "7" : "";
+      return flat + numeral + extension;
     }
 
     function keyName(key) {
@@ -329,9 +364,14 @@
       return `${k.root} ${k.minor ? "minor" : "major"}`;
     }
 
+    // Every key in the modes the genre has progressions for; open keys twice.
+    function keysFor(g) {
+      const keys = [...(g.major ? MAJOR_KEYS : []), ...(g.minor ? MINOR_KEYS : [])];
+      return keys.flatMap(k => OPEN_KEYS.has(k) ? [k, k] : [k]);
+    }
+
     // ---------- Genres: rhythm, feel and strumming stay tied to the genre;
-    // keys are ones the genre is commonly played in, limited to open-chord
-    // keys (C, G, D, A, E, Am, Em, Dm) so newcomers can play them. ----------
+    // keys come from all 12 major and/or 12 minor keys (see keysFor). ----------
     // Strum symbols: ↓ down, ↑ up, – rest, x muted hit, B bass note.
     const GRIDS = {
       eighths:    ["1", "&", "2", "&", "3", "&", "4", "&"],
@@ -344,64 +384,64 @@
     const I = [0, ""], IV = [5, ""], V = [7, ""], vi = [9, "m"], iii = [4, "m"];
     const genres = [
       { name: "Pop ballad", sig: [4, 4], tempo: [66, 80], feel: "Straight", grid: "eighths",
-        strums: ["↓ – ↓ ↑ – ↑ ↓ ↑", "↓ – – ↑ – ↑ ↓ ↑"], keys: ["C", "G", "D", "A"],
+        strums: ["↓ – ↓ ↑ – ↑ ↓ ↑", "↓ – – ↑ – ↑ ↓ ↑"],
         major: [[I, V, vi, IV], [vi, IV, I, V], [I, vi, IV, V]] },
       { name: "12-bar blues", sig: [4, 4], tempo: [80, 100], feel: "Shuffle · swing ♪♪ = ♩♪³", grid: "eighths",
-        strums: ["↓ – ↓ ↑ – ↑ ↓ ↑", "↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓"], keys: ["E", "A", "G"],
+        strums: ["↓ – ↓ ↑ – ↑ ↓ ↑", "↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓"],
         major: [[[0, "7"], [5, "7"], [7, "7"]]] },
       { name: "Funk", hard: true, sig: [4, 4], tempo: [94, 110], feel: "16th-note groove", grid: "sixteenths",
-        strums: ["↓ x ↑ x ↓ x ↑ x", "↓ ↑ x ↑ ↓ ↑ x ↑"], keys: ["Em", "Am", "Dm"],
+        strums: ["↓ x ↑ x ↓ x ↑ x", "↓ ↑ x ↑ ↓ ↑ x ↑"],
         minor: [[[0, "m7"], [5, "7"]], [[0, "m7"], [10, "7"]]] },
       { name: "Bossa nova", sig: [4, 4], tempo: [110, 130], feel: "Thumb bass on 1 and 3", grid: "eighths",
-        strums: ["B – ↑ B – ↑ ↑ –"], keys: ["C", "G"],
+        strums: ["B – ↑ B – ↑ ↑ –"],
         major: [[[2, "m7"], [7, "7"], [0, "maj7"]], [[0, "maj7"], [9, "m7"], [2, "m7"], [7, "7"]]] },
       { name: "Rock", sig: [4, 4], tempo: [110, 132], feel: "Driving, all downstrokes", grid: "eighths",
-        strums: ["↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓", "↓ – ↓ ↓ – ↓ ↓ ↓"], keys: ["E", "A", "D", "G"],
+        strums: ["↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓", "↓ – ↓ ↓ – ↓ ↓ ↓"],
         major: [[I, [10, ""], IV], [I, IV, V]] },
       { name: "Reggae", sig: [4, 4], tempo: [70, 84], feel: "One-drop · short skank on 2 and 4", grid: "quarters",
-        strums: ["– x – x"], keys: ["Am", "Em", "Dm", "G", "C"],
+        strums: ["– x – x"],
         minor: [[[0, "m"], [10, ""]]], major: [[I, IV], [I, IV, V, IV]] },
       { name: "Country", sig: [4, 4], tempo: [100, 120], feel: "Train beat · boom-chicka", grid: "eighths",
-        strums: ["B – ↓ ↑ B – ↓ ↑"], keys: ["G", "C", "D", "A"],
+        strums: ["B – ↓ ↑ B – ↓ ↑"],
         major: [[I, IV, V], [I, IV, I, V]] },
       { name: "Soul", sig: [4, 4], tempo: [72, 88], feel: "Laid-back", grid: "eighths",
-        strums: ["↓ – – ↑ – ↑ ↓ –"], keys: ["C", "G"],
+        strums: ["↓ – – ↑ – ↑ ↓ –"],
         major: [[[0, "maj7"], [9, "m7"], [2, "m7"], [7, "7"]], [[2, "m7"], [7, "7"], [0, "maj7"], [9, "m7"]]] },
       { name: "Indie folk", sig: [4, 4], tempo: [92, 108], feel: "Strummed", grid: "eighths",
-        strums: ["↓ – ↓ ↑ – ↑ ↓ ↑", "↓ ↓ ↑ – ↑ ↓ ↑ –"], keys: ["D", "G", "C", "A"],
+        strums: ["↓ – ↓ ↑ – ↑ ↓ ↑", "↓ ↓ ↑ – ↑ ↓ ↑ –"],
         major: [[I, V, vi, IV], [I, IV, vi, V]] },
       { name: "Boom bap", sig: [4, 4], tempo: [84, 94], feel: "Swung · swing ♪♪ = ♩♪³", grid: "eighths",
-        strums: ["↓ – – ↓ – – ↓ –"], keys: ["Am", "Em", "Dm"],
+        strums: ["↓ – – ↓ – – ↓ –"],
         minor: [[[0, "m7"], [5, "m7"]], [[0, "m7"], [5, "m7"], [8, "maj7"]]] },
       { name: "Gospel", sig: [4, 4], tempo: [64, 76], feel: "Warm, full", grid: "eighths",
-        strums: ["↓ – ↓ ↑ ↓ ↑ ↓ ↑"], keys: ["C", "G", "D"],
+        strums: ["↓ – ↓ ↑ ↓ ↑ ↓ ↑"],
         major: [[I, IV, I, V], [I, vi, [2, "m"], V]] },
       { name: "Waltz", hard: true, sig: [3, 4], tempo: [108, 132], feel: "Oom-pah-pah", grid: "waltz",
-        strums: ["B ↓ ↓"], keys: ["Am", "Em", "Dm", "G", "C"],
+        strums: ["B ↓ ↓"],
         minor: [[[0, "m"], [5, "m"], [7, "7"], [0, "m"]]], major: [[I, IV, [7, "7"], I]] },
       { name: "Disco", hard: true, sig: [4, 4], tempo: [116, 124], feel: "Four on the floor · muted “chicken scratch”", grid: "sixteenths",
-        strums: ["↓ ↑ ↓ ↑ ↓ ↑ ↓ ↑"], keys: ["Am", "Dm", "Em"],
+        strums: ["↓ ↑ ↓ ↑ ↓ ↑ ↓ ↑"],
         minor: [[[0, "m7"], [5, "7"]], [[0, "m7"], [5, "m7"]]] },
       { name: "R&B", sig: [4, 4], tempo: [64, 76], feel: "Half-time", grid: "eighths",
-        strums: ["↓ – – – – ↑ ↓ –"], keys: ["C", "G"],
+        strums: ["↓ – – – – ↑ ↓ –"],
         major: [[[5, "maj7"], [4, "m7"], [2, "m7"], [0, "maj7"]], [[2, "m7"], [7, "7"], [0, "maj7"]]] },
       { name: "Flamenco rumba", sig: [4, 4], tempo: [100, 120], feel: "Rumba · x = slap on 2 and 4", grid: "eighths",
-        strums: ["↓ – ↓ ↑ x ↑ ↓ ↑"], keys: ["Am", "Em", "Dm"],
+        strums: ["↓ – ↓ ↑ x ↑ ↓ ↑"],
         minor: [[[0, "m"], [10, ""], [8, ""], [7, ""]]] },
       { name: "Motown", sig: [4, 4], tempo: [112, 124], feel: "Backbeat on 2 and 4", grid: "quarters",
-        strums: ["– ↓ – ↓"], keys: ["C", "G", "D"],
+        strums: ["– ↓ – ↓"],
         major: [[I, IV, V], [I, vi, IV, V]] },
       { name: "Dream pop", sig: [4, 4], tempo: [56, 68], feel: "Slow, let it ring", grid: "quarters",
-        strums: ["↓ – – –"], keys: ["C", "D", "G"],
+        strums: ["↓ – – –"],
         major: [[[0, "maj7"], [5, "maj7"]], [I, iii, IV]] },
       { name: "Alt rock", sig: [4, 4], tempo: [88, 100], feel: "Straight", grid: "eighths",
-        strums: ["↓ ↓ ↓ ↑ – ↑ ↓ ↑"], keys: ["Em", "Am"],
+        strums: ["↓ ↓ ↓ ↑ – ↑ ↓ ↑"],
         minor: [[[0, "m"], [8, ""], [3, ""], [10, ""]]] },
       { name: "Afrobeat", hard: true, sig: [4, 4], tempo: [104, 116], feel: "Choppy 16ths", grid: "sixteenths",
-        strums: ["– x ↑ x – x ↑ x"], keys: ["Dm", "Am", "Em"],
+        strums: ["– x ↑ x – x ↑ x"],
         minor: [[[0, "m7"], [5, ""]]] },
       { name: "Lullaby", sig: [6, 8], tempo: [54, 66], feel: "Gentle, rocking", grid: "six",
-        strums: ["↓ – ↑ ↓ – ↑"], keys: ["G", "C", "D"],
+        strums: ["↓ – ↑ ↓ – ↑"],
         major: [[I, vi, IV, V]] }
     ];
 
@@ -501,14 +541,16 @@
     // Build one prompt from independent random parts.
     function makePrompt() {
       const g = drawGenre();
-      const key = pick(g.keys);
+      const key = pick(keysFor(g));
       const progressions = key.endsWith("m") ? g.minor : g.major;
+      const progression = pick(progressions);
       const bpm = 2 * Math.round((g.tempo[0] + Math.random() * (g.tempo[1] - g.tempo[0])) / 2);
       const t = drawTheme();
       return {
         genre: g.name,
         key: keyName(key),
-        chords: transpose(key, pick(progressions)),
+        chords: transpose(key, progression),
+        roman: progression.map(roman).join(" – "),
         sig: g.sig,
         tempo: (g.sig[1] === 8 ? "♩. = " : "♩ = ") + bpm,
         feel: g.feel,
@@ -550,6 +592,9 @@
     // Preload the card back and joker so the first flip and break look right.
     ["back-red", "joker_red"].forEach(n => { new Image().src = artUrl(n); });
 
+    // Wrap ♭ and ♯ so they render in a font that has them.
+    const acc = text => text.replace(/[♭♯]/g, m => `<span class="acc">${m}</span>`);
+
     function strumGrid(p) {
       const counts = GRIDS[p.grid];
       const hits = p.strum.split(" ");
@@ -567,16 +612,17 @@
           ${art(skinName(skin), true, skin.rank + skin.suit, skin.suit === "♥" || skin.suit === "♦")}
           <div class="ink">
             <span class="genre">${p.genre}</span>
-            <span class="key">Key of ${p.key}</span>
-            <span class="chords">${p.chords}</span>
+            <span class="key">Key of ${acc(p.key)}</span>
+            <span class="chords">${acc(p.chords)}</span>
+            <span class="roman">${acc(p.roman)}</span>
             <div class="meter">
               <span class="sr-only">${p.sig[0]}/${p.sig[1]} time</span><span class="timesig" aria-hidden="true"><span>${p.sig[0]}</span><span>${p.sig[1]}</span></span>
               <span class="tempo">${p.tempo}</span>
               <span class="feel">${p.feel}</span>
             </div>
             ${strumGrid(p)}
-            <div class="legend">↓ down · ↑ up · – rest · x muted · B bass note</div>
-            <div class="legend">No instrument? Clap, hum or sing along.</div>
+            <div class="legend">↓ down · ↑ up · – rest · x mute · B bass</div>
+            <div class="legend">No instrument? Clap, hum or sing.</div>
             <div class="theme">Theme: ${p.theme}</div>
             <p class="line">${p.line}</p>
           </div>
@@ -589,7 +635,7 @@
           ${art("joker_red", true, "JOKER", true)}
           <div class="ink">
             <span class="break-title">Break</span>
-            <p class="break-text">Put your instruments down for a few minutes.</p>
+            <p class="break-text">Let your fingers down.</p>
           </div>
         </div>`;
     }

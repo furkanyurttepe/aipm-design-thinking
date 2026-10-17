@@ -153,6 +153,19 @@ them to **start and continue** a conversation about the music after playing?
   screen-reader description) and the Undo button — "not needed". The card
   again has no turn-over cue (see second test, T2-1); an accidental Jam can no
   longer be undone. Both are recorded as known trade-offs.
+- **v12 (AI PM decisions):**
+  - Break card text changed from "Put your instruments down for a few
+    minutes." to "Let your fingers down."
+  - Keys: all 12 major and 12 minor keys, dealt at random; open-chord keys
+    (C, G, D, A, E, Am, Em, Dm) come twice as often. *This partly reverses
+    re-review finding 2* (open-chord keys only) — harder keys such as E♭ minor
+    or F♯ major now appear, which may lead to more skipped cards.
+  - Chords are spelled by music theory from the key (e.g. C major ♭VII = B♭,
+    E♭ minor ♭VI = C♭); verified for all 444 genre × key × progression
+    combinations.
+  - Each card also shows the progression in Roman numerals (e.g.
+    i – ♭VII – ♭VI – V).
+  - Legend lines shortened to fit small phones.
 
 ## Prototype Review Decisions
 
