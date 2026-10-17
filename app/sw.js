@@ -1,6 +1,6 @@
 // Caches the whole app on first visit so it works offline at the venue.
 // Bump VERSION whenever any app file changes.
-const VERSION = "card-session-v7";
+const VERSION = "card-session-v8";
 const SUITS = ["spade", "heart", "diamond", "club"];
 const RANKS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "jack", "queen", "king"];
 const FILES = [

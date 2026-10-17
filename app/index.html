@@ -36,16 +36,9 @@
       --kraft: #d6b688;
       --cream: #f5e6c8;
       --hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: Georgia, "Times New Roman", serif;
-      color: var(--cream);
       /* Worn, sun-faded wooden table under a warm lamp: grain, scratches,
          faded patches and a dark vignette for a retro, bohemian feel */
-      background:
+      --wood:
         radial-gradient(ellipse 75% 45% at 50% 6%, rgba(255, 196, 120, 0.32), transparent 70%),
         radial-gradient(ellipse 40% 25% at 18% 62%, rgba(255, 230, 190, 0.07), transparent 70%),
         radial-gradient(ellipse 35% 22% at 82% 30%, rgba(40, 20, 10, 0.18), transparent 70%),
@@ -53,6 +46,14 @@
         repeating-linear-gradient(93deg, rgba(0, 0, 0, 0.07) 0 1px, transparent 1px 7px, rgba(255, 240, 210, 0.04) 7px 8px, transparent 8px 19px),
         repeating-linear-gradient(88deg, transparent 0 60px, rgba(0, 0, 0, 0.12) 60px 62px, transparent 62px 140px),
         linear-gradient(180deg, #7b5a41 0%, #6a4a33 45%, #523826 100%);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--cream);
+      background: var(--wood);
       background-attachment: fixed;
     }
     /* Film grain and paper speckle over everything (drawn locally, no image) */
@@ -107,6 +108,7 @@
       display: block;
       width: min(100%, calc((100vh - 230px) * 338 / 489));
       width: min(100%, calc((100dvh - 230px) * 338 / 489));
+      width: min(100%, calc((100cqh - 230px) * 338 / 489));
       min-width: 240px;
       margin: 0 auto;
       aspect-ratio: 338 / 489;
@@ -444,6 +446,58 @@
 
     .print-sheet { display: none; }
 
+    /* ---------- Desktop: the app sits inside a phone frame ---------- */
+    .phone, .phone-screen { display: contents; }
+    @media (min-width: 760px) and (min-height: 640px) and (hover: hover) {
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background:
+          radial-gradient(ellipse at 50% 40%, rgba(255, 196, 120, 0.12), transparent 60%),
+          #17110d;
+      }
+      .phone {
+        display: block;
+        position: relative;
+        width: 402px;
+        height: min(860px, calc(100vh - 40px));
+        padding: 12px;
+        border-radius: 58px;
+        background: #0d0b0a;
+        box-shadow:
+          inset 0 0 0 2px #3a332e,
+          0 0 0 1px #000,
+          0 30px 60px rgba(0, 0, 0, 0.6);
+      }
+      /* Dynamic-island style notch */
+      .phone::before {
+        content: "";
+        position: absolute;
+        top: 22px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 112px;
+        height: 32px;
+        border-radius: 20px;
+        background: #000;
+        z-index: 60;
+      }
+      .phone-screen {
+        display: block;
+        height: 100%;
+        border-radius: 46px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        scrollbar-width: none;
+        container-type: size;
+        background: var(--wood);
+        background-attachment: local;
+        padding-top: 34px;
+      }
+      .phone-screen::-webkit-scrollbar { display: none; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .inner, .face { transition: none; }
     }
@@ -478,6 +532,7 @@
   </style>
 </head>
 <body>
+  <div class="phone"><div class="phone-screen">
   <header>
     <button class="back-btn" id="back" type="button" aria-label="Back" hidden>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="#3b2a1d" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -536,6 +591,7 @@
       (David Bellot, Huub de Beer) · LGPL-2.1 · Font: Caveat (SIL OFL) ·
       <button type="button" id="export">Export session log</button></p>
   </main>
+  </div></div>
 
   <div class="print-sheet" id="print-sheet" aria-hidden="true"></div>
 
