@@ -487,15 +487,16 @@
         display: block;
         height: 100%;
         border-radius: 46px;
-        overflow-x: hidden;
-        overflow-y: auto;
-        scrollbar-width: none;
+        /* Fixed screen: no scrolling or bouncing inside the frame */
+        overflow: hidden;
+        overscroll-behavior: none;
         container-type: size;
         background: var(--wood);
         background-attachment: local;
-        padding-top: 34px;
+        padding-top: 30px;
       }
-      .phone-screen::-webkit-scrollbar { display: none; }
+      /* Leave room for the title, buttons and credit inside the frame */
+      .card { width: min(100%, calc((100cqh - 300px) * 338 / 489)); }
     }
 
     @media (prefers-reduced-motion: reduce) {
