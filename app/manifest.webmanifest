@@ -1,0 +1,29 @@
+{
+  "name": "Card Session — jam prompts for musicians",
+  "short_name": "Card Session",
+  "description": "Jam prompts for musicians: random prompts on playing cards, then a question to talk about the music you just made.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#5e3f2b",
+  "theme_color": "#5e3f2b",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

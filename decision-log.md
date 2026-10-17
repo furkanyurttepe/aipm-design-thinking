@@ -166,6 +166,28 @@ them to **start and continue** a conversation about the music after playing?
   - Each card also shows the progression in Roman numerals (e.g.
     i – ♭VII – ♭VI – V).
   - Legend lines shortened to fit small phones.
+- **v13 — "Card Session" app (AI PM decisions, added without user testing):**
+  `app/` is an installable, offline-capable version of the prototype; the
+  course deliverable in `prototype/` stays unchanged.
+  - PWA: manifest, ♫ icon, service worker; card images and font bundled
+    locally (~2.3 MB); the page itself loads network-first so updates arrive
+    at once.
+  - Start screen: **Group Jam** (Create → 6-digit code; Join → enter the code;
+    same card for everyone, the creator deals, musician count shown) and
+    **Single Play** (cards do not turn over, no question, button reads
+    "Next").
+  - **Simulated server** for Group Jam: tabs in one browser really share
+    cards; simulated musicians join over time; separate phones do not
+    connect yet.
+  - Metronome in the card's tempo and meter, with group accents.
+  - New meters: Karşılama 9/8, Aksak 7/8, Aksak 5/8 (Turkish aksak) and
+    5/4 Blues.
+  - Retro, bohemian look with raised buttons; a back button top-left replaces
+    the "Leave" and "Change" links.
+  - Name: **Card Session — jam prompts for musicians** ("Riffle" rejected:
+    taken by a music platform). Playing-card look kept so the card's number
+    and suit can carry meaning later.
+  - Store, privacy, naming and monetisation notes: `app/STORE-NOTES.md`.
 
 ## Prototype Review Decisions
 
